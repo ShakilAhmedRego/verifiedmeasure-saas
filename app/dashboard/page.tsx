@@ -15,7 +15,7 @@ export default function DashboardPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [unlocking, setUnlocking] = useState(false)
-  
+
   const router = useRouter()
   const { credits, refresh: refreshCredits } = useCredits()
   const { entitledIds, refresh: refreshEntitled } = useEntitledLeads()
@@ -40,7 +40,7 @@ export default function DashboardPage() {
       .from('leads')
       .select('*')
       .order('intelligence_score', { ascending: false })
-    
+
     if (data) {
       setLeads(data as Lead[])
     }
@@ -49,10 +49,10 @@ export default function DashboardPage() {
 
   const handleUnlock = async () => {
     if (selectedIds.size === 0) return
-    
+
     const cost = selectedIds.size
     if (credits < cost) {
-      showToast(\`Insufficient credits. Need \${cost}, have \${credits}\`, 'error')
+      showToast(`Insufficient credits. Need ${cost}, have ${credits}`, 'error')
       return
     }
 
@@ -64,7 +64,7 @@ export default function DashboardPage() {
 
       if (error) throw error
 
-      showToast(\`Unlocked \${data.unlocked} leads!\`, 'success')
+      showToast(`Unlocked ${data.unlocked} leads!`, 'success')
       setSelectedIds(new Set())
       refreshCredits()
       refreshEntitled()
@@ -117,40 +117,8 @@ export default function DashboardPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="card p-6">
-            <div className="text-sm text-gray-600 mb-2">Total Leads</div>
-            <div className="text-3xl font-bold">{leads.length}</div>
-          </div>
-          <div className="card p-6">
-            <div className="text-sm text-gray-600 mb-2">Unlocked</div>
-            <div className="text-3xl font-bold text-green-600">{entitledIds.size}</div>
-          </div>
-          <div className="card p-6">
-            <div className="text-sm text-gray-600 mb-2">Avg Score</div>
-            <div className="text-3xl font-bold text-blue-600">
-              {leads.length > 0 ? Math.round(leads.reduce((sum, l) => sum + l.intelligence_score, 0) / leads.length) : 0}
-            </div>
-          </div>
-          <div className="card p-6">
-            <div className="text-sm text-gray-600 mb-2">Available</div>
-            <div className="text-3xl font-bold text-purple-600">{unentitledLeads.length}</div>
-          </div>
-        </div>
 
-        <div className="card p-6 mb-6">
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search companies, industries, locations... (Press ⌘K for quick search)"
-            className="w-full input"
-          />
-          <div className="mt-2 text-sm text-gray-600">
-            Showing {filteredLeads.length} of {leads.length} leads
-          </div>
-        </div>
-
+        {/* Selection Bar */}
         {unentitledLeads.length > 0 && (
           <div className="card p-4 mb-6 flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -160,27 +128,33 @@ export default function DashboardPage() {
               >
                 Select All ({unentitledLeads.length})
               </button>
+
               {selectedIds.size > 0 && (
                 <button onClick={() => setSelectedIds(new Set())} className="text-sm text-gray-600">
                   Clear
                 </button>
               )}
+
               <div className="text-sm text-gray-600">
                 {selectedIds.size} selected • Cost: {selectedIds.size} credits
               </div>
             </div>
+
             {selectedIds.size > 0 && (
               <button
                 onClick={handleUnlock}
                 disabled={unlocking || credits < selectedIds.size}
                 className="btn-primary animate-pulse-slow"
               >
-                {unlocking ? 'Unlocking...' : \`Unlock \${selectedIds.size} for \${selectedIds.size} credits\`}
+                {unlocking
+                  ? 'Unlocking...'
+                  : `Unlock ${selectedIds.size} for ${selectedIds.size} credits`}
               </button>
             )}
           </div>
         )}
 
+        {/* Lead Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredLeads.map(lead => {
             const isEntitled = entitledIds.has(lead.id)
@@ -190,18 +164,18 @@ export default function DashboardPage() {
             return (
               <div key={lead.id} className="card p-6 hover:shadow-lg transition-shadow">
                 <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <h3 className="font-bold text-lg mb-1">{maskedLead.company}</h3>
+                  <div>
+                    <h3 className="font-bold text-lg">{maskedLead.company}</h3>
                     <p className="text-sm text-gray-600">{lead.industry || 'N/A'}</p>
                   </div>
+
                   {!isEntitled ? (
                     <input
                       type="checkbox"
                       checked={isSelected}
                       onChange={(e) => {
                         const newSet = new Set(selectedIds)
-                        if (e.target.checked) newSet.add(lead.id)
-                        else newSet.delete(lead.id)
+                        e.target.checked ? newSet.add(lead.id) : newSet.delete(lead.id)
                         setSelectedIds(newSet)
                       }}
                       className="h-5 w-5 rounded border-gray-300 text-blue-600"
@@ -211,45 +185,32 @@ export default function DashboardPage() {
                   )}
                 </div>
 
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Score</span>
-                    <span className={\`font-bold \${getScoreColor(lead.intelligence_score)}\`}>
-                      {lead.intelligence_score}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Location</span>
-                    <span>{lead.city}, {lead.state}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Revenue</span>
-                    <span>{formatCurrency(lead.annual_revenue)}</span>
-                  </div>
-                  <div className="pt-3 border-t">
-                    <div className="text-xs text-gray-500">Email</div>
-                    <div className="text-sm font-medium">{maskedLead.email}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-gray-500">Phone</div>
-                    <div className="text-sm font-medium">{maskedLead.phone}</div>
-                  </div>
-                  {isEntitled && lead.decision_maker_name && (
-                    <div>
-                      <div className="text-xs text-gray-500">Decision Maker</div>
-                      <div className="text-sm font-medium">{lead.decision_maker_name}</div>
-                      <div className="text-xs text-gray-600">{lead.decision_maker_title}</div>
-                    </div>
-                  )}
+                <div className="flex justify-between text-sm mb-2">
+                  <span>Score</span>
+                  <span className={`font-bold ${getScoreColor(lead.intelligence_score)}`}>
+                    {lead.intelligence_score}
+                  </span>
+                </div>
+
+                <div className="flex justify-between text-sm mb-2">
+                  <span>Revenue</span>
+                  <span>{formatCurrency(lead.annual_revenue)}</span>
+                </div>
+
+                <div className="text-sm mt-3">
+                  <div className="text-xs text-gray-500">Email</div>
+                  <div>{maskedLead.email}</div>
+                </div>
+
+                <div className="text-sm mt-2">
+                  <div className="text-xs text-gray-500">Phone</div>
+                  <div>{maskedLead.phone}</div>
                 </div>
               </div>
             )
           })}
         </div>
 
-        {filteredLeads.length === 0 && (
-          <div className="text-center py-12 text-gray-400">No leads found</div>
-        )}
       </div>
     </div>
   )
